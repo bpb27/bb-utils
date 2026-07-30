@@ -12,3 +12,7 @@ export {
   type EnumWithMeta,
 } from './enum/create-enum.js';
 export { object } from './object/index.js';
+export {
+  createQueryParamsSchema,
+  type QueryParamsSchema,
+} from './query-params/query-params.js';

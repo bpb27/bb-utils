@@ -1,115 +1,135 @@
-import type { EnumApi, EnumWithMeta } from "../enum/create-enum";
-import { is } from "../is";
+import { is } from '../is/index.js';
+import { codecs, type Codec } from '../schema/codecs.js';
+import type {
+  InputValues,
+  ParsedValues,
+  Schema,
+  SchemaInput,
+  ValidateDefaults,
+} from '../schema/infer.js';
 
-const serializers = {
-  string: () => ({
-    encode: (value: string) => value,
-    decode: (value: string) => value,
-  }),
-  strings: () => ({
-    encode: (values: string[]) => values.join(','),
-    decode: (value: string) => value.split(','),
-  }),
-  number: () => ({
-		encode: (value: number) => value.toString(),
-		decode: (value: string) => {
-			const num = Number(value);
-			if (Number.isNaN(num)) {
-				throw new Error(`Invalid number: ${value}`);
-			}
-			return num;
-		},
-	}),
-  numbers: () => ({
-		encode: (values: number[]) => values.join(","),
-		decode: (value: string) => {
-      const nums = value.split(",").map(Number);
-			if (nums.some(Number.isNaN)) {
-        throw new Error(`Invalid numbers: ${value}`);
-      }
-			return nums;
-		},
-	}),
-  boolean: () =>  ({
-		encode: (value: boolean) => (value ? "true" : "false"),
-		decode: (value: string) => {
-			if (value === "true") return true;
-			if (value === "false") return false;
-			throw new Error(`Invalid boolean: ${value}`);
-		},
-  }),
-  enum: <T extends EnumApi<string> | EnumWithMeta<Record<string, unknown>>>(enumObj: T) => ({
-    encode: (value: T['keys'][number]) => {
-      if (enumObj.contains(value)) {
-        return value as string;
-      }
-      // TODO: forgiving encoding? config option? or just allow TS to enforce?
-      throw new Error(`Invalid enum value: ${value}`);
-    },
-    decode: (value: string) => {
-      if (enumObj.contains(value)) {
-        return value;
-      }
-      throw new Error(`Invalid enum value: ${value}`);
-    },
-  }),
-  enums: <T extends EnumApi<string> | EnumWithMeta<Record<string, unknown>>>(enumObj: T) => ({
-    encode: (value: T['keys']) => {
-      if (value.every(enumObj.contains)) {
-        return value.join(',');
-      }
-      throw new Error(`Invalid enum value: ${value}`);
-    },
-    decode: (value: string) => {
-      const values = value.split(',');
-      if (values.every(enumObj.contains)) {
-        return values as T['keys'];
-      }
-      throw new Error(`Invalid enum value: ${value}`);
-    },
-  }),
-};
-
-const createQueryParamsSchema = <T extends Record<string, SchemaInput>>(schema: T) => {
-  return schema;
-};
-
-type SchemaInput = {
-  type: 'string';
-  default?: string;
-} | {
-  type: 'strings';
-  default?: string[];
-} | {
-  type: 'number';
-  default?: number;
-} | {
-  type: 'numbers';
-  default?: number[];
-} | {
-  type: 'boolean';
-  default?: boolean;
-} | {
-  type: 'enum';
-  enum: EnumApi<string> | EnumWithMeta<Record<string, unknown>>;
-  default?: string;
-} | {
-  type: 'enums';
-  enum: EnumApi<string> | EnumWithMeta<Record<string, unknown>>;
-  default?: string[];
+/**
+ * Resolve the codec for a single schema field. Typed `Codec<any>` because this
+ * bridges the discriminated `SchemaInput` union to a value-agnostic codec; the
+ * public `parse`/`serialize` signatures re-impose the precise types.
+ */
+function codecFor(input: SchemaInput): Codec<any> {
+  switch (input.type) {
+    case 'string':
+      return codecs.string();
+    case 'strings':
+      return codecs.strings();
+    case 'number':
+      return codecs.number();
+    case 'numbers':
+      return codecs.numbers();
+    case 'boolean':
+      return codecs.boolean();
+    case 'enum':
+      return codecs.enum(input.enum);
+    case 'enums':
+      return codecs.enums(input.enum);
+  }
 }
 
-createQueryParamsSchema({
-  name: { type: 'string' },
-  age: { type: 'number' },
-  tags: { type: 'strings' },
-  isActive: { type: 'boolean' },
-})
-
-function parseQueryParams(input: string | URLSearchParams) {
-  const str = is.string(input) ? input : input.toString();
+/** Normalize parse input into `URLSearchParams`, tolerating a leading `?`. */
+function toSearchParams(input: string | URLSearchParams): URLSearchParams {
+  return is.string(input)
+    ? new URLSearchParams(input.replace(/^\?/, ''))
+    : input;
 }
 
-function serializeQueryParams(params: Record<string, string | number | boolean | string[] | number[]>) {
-  const searchParams = new URLSearchParams();
+/**
+ * A query-params schema: the source definition plus type-safe `parse` and
+ * `serialize` bound to it.
+ *
+ * @typeParam T - The schema shape.
+ */
+export interface QueryParamsSchema<T extends Schema> {
+  /** The schema this was built from. */
+  readonly schema: T;
+
+  /**
+   * Parse a query string (or `URLSearchParams`) into a typed object. Fields
+   * with a `default` are always present; missing fields without a default are
+   * omitted.
+   *
+   * @param input - A query string (a leading `?` is tolerated) or
+   *   `URLSearchParams`.
+   * @returns The decoded, typed values.
+   * @throws {TypeError} If a present value fails to decode (e.g. a bad number).
+   */
+  parse(input: string | URLSearchParams): ParsedValues<T>;
+
+  /**
+   * Serialize a typed object into a query string. Fields set to `undefined`
+   * are skipped.
+   *
+   * @param values - The values to encode.
+   * @returns The encoded query string (no leading `?`).
+   */
+  serialize(values: InputValues<T>): string;
+}
+
+/**
+ * Build a type-safe query-params (de)serializer from a schema.
+ *
+ * Runs identically in browser and Node. The returned object is frozen.
+ *
+ * @param schema - A map of param name to {@link SchemaInput}.
+ * @returns A {@link QueryParamsSchema} with `parse` and `serialize`.
+ *
+ * @example
+ * ```ts
+ * const status = createEnum('active', 'inactive');
+ * const qp = createQueryParamsSchema({
+ *   q: { type: 'string' },
+ *   page: { type: 'number', default: 1 },
+ *   status: { type: 'enum', enum: status },
+ * });
+ *
+ * qp.parse('?q=shoes&page=2&status=active');
+ * // { q: 'shoes', page: 2, status: 'active' }
+ *
+ * qp.serialize({ q: 'shoes', page: 2 });
+ * // "q=shoes&page=2"
+ * ```
+ */
+export function createQueryParamsSchema<const T extends Schema>(
+  schema: T & ValidateDefaults<T>,
+): QueryParamsSchema<T> {
+  const entries = Object.entries(schema) as [string, SchemaInput][];
+
+  const parse = (input: string | URLSearchParams): ParsedValues<T> => {
+    const params = toSearchParams(input);
+    const result: Record<string, unknown> = {};
+
+    for (const [key, def] of entries) {
+      const raw = params.get(key);
+      if (raw === null) {
+        if (def.default !== undefined) {
+          result[key] = def.default;
+        }
+        continue;
+      }
+      result[key] = codecFor(def).decode(raw);
+    }
+
+    return result as ParsedValues<T>;
+  };
+
+  const serialize = (values: InputValues<T>): string => {
+    const params = new URLSearchParams();
+    const provided = values as Record<string, unknown>;
+
+    for (const [key, def] of entries) {
+      const value = provided[key];
+      if (value === undefined) continue;
+      params.set(key, codecFor(def).encode(value));
+    }
+
+    return params.toString();
+  };
+
+  return Object.freeze({ schema, parse, serialize });
 }
