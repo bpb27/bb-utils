@@ -1,4 +1,4 @@
-import { describe, it, expect, expectTypeOf } from "vitest";
+import { describe, it, expect, expectTypeOf } from "vite-plus/test";
 import { is } from "./index.js";
 
 describe("is", () => {

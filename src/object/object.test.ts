@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vite-plus/test";
 import { object } from "./index.js";
 import { typedKeys } from "./typed-keys.js";
 import { typedValues } from "./typed-values.js";

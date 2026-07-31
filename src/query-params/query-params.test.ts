@@ -1,4 +1,4 @@
-import { describe, it, expect, expectTypeOf } from "vitest";
+import { describe, it, expect, expectTypeOf } from "vite-plus/test";
 import { createEnum, createEnumWithMeta } from "../enum/create-enum.js";
 import type { Infer, InferInput } from "../schema/infer.js";
 import { createQueryParamsSchema, SchemaError } from "./query-params.js";
