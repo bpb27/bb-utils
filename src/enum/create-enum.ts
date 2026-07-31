@@ -1,6 +1,6 @@
-import { fromKeys } from '../object/from-keys.js';
-import { typedKeys } from '../object/typed-keys.js';
-import { typedValues } from '../object/typed-values.js';
+import { fromKeys } from "../object/from-keys.js";
+import { typedKeys } from "../object/typed-keys.js";
+import { typedValues } from "../object/typed-values.js";
 
 /**
  * The core enum helper produced by {@link createEnum}, and the base of
@@ -59,8 +59,9 @@ export interface EnumApi<Key extends string> extends Iterable<Key> {
  *
  * @typeParam T - The source record type.
  */
-export interface EnumWithMeta<T extends Record<string, unknown>>
-  extends EnumApi<Extract<keyof T, string>> {
+export interface EnumWithMeta<T extends Record<string, unknown>> extends EnumApi<
+  Extract<keyof T, string>
+> {
   /**
    * The source record, frozen. Access is strict — reading a key that does not
    * exist is a compile error; use {@link EnumWithMeta.get} for dynamic keys.
@@ -128,9 +129,7 @@ function buildEnum<Key extends string>(keys: readonly Key[]): EnumApi<Key> {
  * const letters = createEnum(...arr);
  * ```
  */
-export function createEnum<const T extends readonly string[]>(
-  ...keys: T
-): EnumApi<T[number]> {
+export function createEnum<const T extends readonly string[]>(...keys: T): EnumApi<T[number]> {
   return buildEnum<T[number]>(keys);
 }
 
@@ -156,9 +155,7 @@ export function createEnum<const T extends readonly string[]>(
  * status.values;            // readonly [{ label, color }, ...]
  * ```
  */
-export function createEnumWithMeta<T extends Record<string, unknown>>(
-  meta: T,
-): EnumWithMeta<T> {
+export function createEnumWithMeta<T extends Record<string, unknown>>(meta: T): EnumWithMeta<T> {
   const frozenMeta = Object.freeze({ ...meta }) as Readonly<T>;
   const core = buildEnum(typedKeys(frozenMeta) as Extract<keyof T, string>[]);
 

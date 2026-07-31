@@ -6,6 +6,7 @@
   "name": "bb-utils",
   "excludeInternal": true,
   "excludePrivate": true,
+  "intentionallyNotExported": ["ValueType", "AnyEnum", "FieldOptions", "ArrayOptions", "FileInput"],
   "categorizeByGroup": true,
   "navigationLinks": {
     "GitHub": "https://github.com/brendanbrown/bb-utils"

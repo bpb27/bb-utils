@@ -18,7 +18,7 @@ npm install bb-utils
 ## Usage
 
 ```ts
-import { clamp } from 'bb-utils';
+import { clamp } from "bb-utils";
 
 clamp(12, 0, 10); // => 10
 clamp(-5, 0, 10); // => 0
@@ -29,14 +29,14 @@ that utility's code.
 
 ## Scripts
 
-| Command              | Description                                        |
-| -------------------- | -------------------------------------------------- |
-| `npm run build`      | Build the library to `dist/` (JS + `.d.ts`).       |
-| `npm run dev`        | Build in watch mode.                               |
-| `npm test`           | Run the test suite once (Vitest).                  |
-| `npm run test:watch` | Run tests in watch mode.                           |
-| `npm run typecheck`  | Type-check without emitting.                       |
-| `npm run docs`       | Generate the API docs to `docs/` (TypeDoc).        |
+| Command              | Description                                  |
+| -------------------- | -------------------------------------------- |
+| `npm run build`      | Build the library to `dist/` (JS + `.d.ts`). |
+| `npm run dev`        | Build in watch mode.                         |
+| `npm test`           | Run the test suite once (Vitest).            |
+| `npm run test:watch` | Run tests in watch mode.                     |
+| `npm run typecheck`  | Type-check without emitting.                 |
+| `npm run docs`       | Generate the API docs to `docs/` (TypeDoc).  |
 
 ## Adding a utility
 

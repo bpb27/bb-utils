@@ -1,4 +1,4 @@
-import type { EnumApi } from '../enum/create-enum.js';
+import type { EnumApi } from "../enum/create-enum.js";
 
 /**
  * A bidirectional string codec: `encode` turns a typed value into its string
@@ -19,51 +19,67 @@ export interface Codec<T> {
   decode: (value: string) => T;
 }
 
+/**
+ * A {@link Codec} for a list value, built over an element codec. Adds
+ * {@link ArrayCodec.decodeLenient} for dropping invalid elements instead of
+ * failing the whole field.
+ */
+export interface ArrayCodec<T> extends Codec<T[]> {
+  /** Decode, silently dropping elements that fail rather than throwing. */
+  decodeLenient: (value: string) => T[];
+}
+
 /** Any enum produced by `createEnum` / `createEnumWithMeta`. */
 type AnyEnum = EnumApi<string>;
 
-const string = (): Codec<string> => ({
+const SEPARATOR = ",";
+
+/** Lift a scalar codec into a comma-separated list codec. */
+function arrayOf<T>(element: Codec<T>): ArrayCodec<T> {
+  return {
+    encode: (values) => values.map(element.encode).join(SEPARATOR),
+    decode: (value) => (value === "" ? [] : value.split(SEPARATOR).map(element.decode)),
+    decodeLenient: (value) => {
+      if (value === "") return [];
+      const out: T[] = [];
+      for (const part of value.split(SEPARATOR)) {
+        try {
+          out.push(element.decode(part));
+        } catch {
+          // drop invalid element
+        }
+      }
+      return out;
+    },
+  };
+}
+
+const stringCodec: Codec<string> = {
   encode: (value) => value,
   decode: (value) => value,
-});
+};
 
-const strings = (): Codec<string[]> => ({
-  encode: (values) => values.join(','),
-  decode: (value) => value.split(','),
-});
-
-const number = (): Codec<number> => ({
+const numberCodec: Codec<number> = {
   encode: (value) => value.toString(),
   decode: (value) => {
     const num = Number(value);
-    if (Number.isNaN(num)) {
+    if (value.trim() === "" || Number.isNaN(num)) {
       throw new TypeError(`Invalid number: ${value}`);
     }
     return num;
   },
-});
+};
 
-const numbers = (): Codec<number[]> => ({
-  encode: (values) => values.join(','),
+const booleanCodec: Codec<boolean> = {
+  encode: (value) => (value ? "true" : "false"),
   decode: (value) => {
-    const nums = value.split(',').map(Number);
-    if (nums.some(Number.isNaN)) {
-      throw new TypeError(`Invalid numbers: ${value}`);
-    }
-    return nums;
-  },
-});
-
-const boolean = (): Codec<boolean> => ({
-  encode: (value) => (value ? 'true' : 'false'),
-  decode: (value) => {
-    if (value === 'true') return true;
-    if (value === 'false') return false;
+    if (value === "true") return true;
+    if (value === "false") return false;
     throw new TypeError(`Invalid boolean: ${value}`);
   },
-});
+};
 
-const enumOf = <K extends string>(enumApi: EnumApi<K>): Codec<K> => ({
+const enumCodec = <K extends string>(enumApi: EnumApi<K>): Codec<K> => ({
   encode: (value) => {
     if (!enumApi.contains(value)) {
       throw new TypeError(`Invalid enum value: ${value}`);
@@ -78,38 +94,18 @@ const enumOf = <K extends string>(enumApi: EnumApi<K>): Codec<K> => ({
   },
 });
 
-const enumsOf = <K extends string>(enumApi: EnumApi<K>): Codec<K[]> => ({
-  encode: (values) => {
-    for (const value of values) {
-      if (!enumApi.contains(value)) {
-        throw new TypeError(`Invalid enum value: ${value}`);
-      }
-    }
-    return values.join(',');
-  },
-  decode: (value) => {
-    const parts = value.split(',');
-    for (const part of parts) {
-      if (!enumApi.contains(part)) {
-        throw new TypeError(`Invalid enum value: ${part}`);
-      }
-    }
-    return parts as K[];
-  },
-});
-
 /**
  * The registry of built-in string codecs, keyed by schema `type`. Scalar codecs
  * are nullary factories; `enum`/`enums` take the enum to validate against.
  */
 export const codecs = Object.freeze({
-  string,
-  strings,
-  number,
-  numbers,
-  boolean,
-  enum: enumOf,
-  enums: enumsOf,
+  string: (): Codec<string> => stringCodec,
+  strings: (): ArrayCodec<string> => arrayOf(stringCodec),
+  number: (): Codec<number> => numberCodec,
+  numbers: (): ArrayCodec<number> => arrayOf(numberCodec),
+  boolean: (): Codec<boolean> => booleanCodec,
+  enum: <K extends string>(enumApi: EnumApi<K>): Codec<K> => enumCodec(enumApi),
+  enums: <K extends string>(enumApi: EnumApi<K>): ArrayCodec<K> => arrayOf(enumCodec(enumApi)),
 });
 
 export type { AnyEnum };

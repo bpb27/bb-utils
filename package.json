@@ -2,25 +2,22 @@
   "name": "bb-utils",
   "version": "0.0.0",
   "description": "A tree-shakeable collection of utility functions for browser and Node environments.",
-  "type": "module",
+  "keywords": [
+    "esm",
+    "tree-shakeable",
+    "typescript",
+    "utilities",
+    "utils"
+  ],
   "license": "MIT",
   "author": "Brendan Brown <brendanbrown27@gmail.com>",
-  "keywords": [
-    "utils",
-    "utilities",
-    "tree-shakeable",
-    "esm",
-    "typescript"
-  ],
-  "sideEffects": false,
-  "engines": {
-    "node": ">=18"
-  },
   "files": [
     "dist"
   ],
-  "types": "./dist/index.d.ts",
+  "type": "module",
+  "sideEffects": false,
   "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -29,11 +26,10 @@
     "./package.json": "./package.json"
   },
   "scripts": {
-    "dev": "vite build --watch",
+    "dev": "vp build --watch",
     "build": "vite build",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest",
+    "check": "vp check --fix",
+    "test": "vp test",
     "docs": "typedoc",
     "prepublishOnly": "npm run build"
   },
@@ -43,6 +39,10 @@
     "typescript": "^5.7.3",
     "vite": "^6.0.7",
     "vite-plugin-dts": "^4.4.0",
+    "vite-plus": "^0.2.6",
     "vitest": "^2.1.8"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }

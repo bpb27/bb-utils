@@ -1,8 +1,8 @@
-import { typedKeys } from './typed-keys.js';
-import { typedValues } from './typed-values.js';
-import { typedEntries } from './typed-entries.js';
-import { typedFromEntries } from './typed-from-entries.js';
-import { fromKeys } from './from-keys.js';
+import { typedKeys } from "./typed-keys.js";
+import { typedValues } from "./typed-values.js";
+import { typedEntries } from "./typed-entries.js";
+import { typedFromEntries } from "./typed-from-entries.js";
+import { fromKeys } from "./from-keys.js";
 
 /**
  * Namespaced object utilities — typed replacements for the `Object.*` built-ins
