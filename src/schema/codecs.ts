@@ -71,7 +71,11 @@ const numberCodec: Codec<number> = {
 };
 
 const booleanCodec: Codec<boolean> = {
-  encode: (value) => (value ? "true" : "false"),
+  encode: (value) => {
+    if (value === true) return "true";
+    if (value === false) return "false";
+    throw new TypeError(`Invalid boolean: ${String(value)}`);
+  },
   decode: (value) => {
     if (value === "true") return true;
     if (value === "false") return false;
@@ -82,7 +86,7 @@ const booleanCodec: Codec<boolean> = {
 const enumCodec = <K extends string>(enumApi: EnumApi<K>): Codec<K> => ({
   encode: (value) => {
     if (!enumApi.contains(value)) {
-      throw new TypeError(`Invalid enum value: ${value}`);
+      throw new TypeError(`Invalid enum value: ${String(value)}`);
     }
     return value;
   },

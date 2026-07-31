@@ -160,6 +160,7 @@ export function createEnumWithMeta<T extends Record<string, unknown>>(meta: T): 
   const core = buildEnum(typedKeys(frozenMeta) as Extract<keyof T, string>[]);
 
   return {
+    // oxlint-disable-next-line typescript/no-misused-spread
     ...core,
     meta: frozenMeta,
     values: Object.freeze(typedValues(frozenMeta)),

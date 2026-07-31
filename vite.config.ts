@@ -1,6 +1,5 @@
-/// <reference types="vitest/config" />
 import { resolve } from "node:path";
-import { defineConfig } from "vite";
+import { defineConfig } from "vite-plus";
 import dts from "vite-plugin-dts";
 
 export default defineConfig({
@@ -12,6 +11,19 @@ export default defineConfig({
       rollupTypes: false,
     }),
   ],
+  test: {
+    include: ["src/**/*.test.ts"],
+  },
+  lint: {
+    ignorePatterns: ["dist/**"],
+    options: {
+      typeCheck: true,
+      typeAware: true,
+    },
+  },
+  staged: {
+    "*": "vp check --fix",
+  },
   build: {
     // Don't clobber the .d.ts files emitted by vite-plugin-dts.
     emptyOutDir: true,
