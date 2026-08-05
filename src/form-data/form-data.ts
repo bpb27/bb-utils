@@ -251,10 +251,21 @@ export function createFormDataSchema<const T extends FormSchema>(schema: T): For
   const serialize = (values: InputValues<T>): FormData => {
     const form = new FormData();
     const provided = values as Record<string, unknown>;
+    const issues: SchemaIssue[] = [];
 
     for (const [key, def] of entries) {
       const value = provided[key];
-      if (value === undefined) continue;
+      if (value === undefined) {
+        if (def.required) {
+          issues.push({
+            field: key,
+            value: null,
+            code: "missing",
+            message: `Missing required field "${key}"`,
+          });
+        }
+        continue;
+      }
 
       switch (def.type) {
         case "file":
@@ -277,6 +288,7 @@ export function createFormDataSchema<const T extends FormSchema>(schema: T): For
       }
     }
 
+    if (issues.length > 0) throw new SchemaError(issues);
     return form;
   };
 

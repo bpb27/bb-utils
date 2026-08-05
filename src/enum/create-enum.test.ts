@@ -1,8 +1,12 @@
 import { describe, it, expect, expectTypeOf } from "vite-plus/test";
-import { createEnum, createEnumWithMeta, type EnumWithMeta } from "./create-enum.js";
+import {
+  createEnum,
+  createEnumWithMeta,
+  type EnumValues,
+  type EnumWithMeta,
+} from "./create-enum.js";
 
 describe("createEnumWithMeta", () => {
-  type StatusKey = "active" | "inactive" | "pending";
   type StatusMeta = { label: string; color: string };
 
   const STATUS = {
@@ -13,6 +17,7 @@ describe("createEnumWithMeta", () => {
   // Annotated explicitly so the `assert` narrowing test below is allowed
   // (assertion calls require an explicitly-typed call target — TS2775).
   const status: EnumWithMeta<typeof STATUS> = createEnumWithMeta(STATUS);
+  type StatusKey = EnumValues<typeof status>;
 
   it("exposes each key as its own literal via ref", () => {
     expect(status.ref.active).toBe("active");
@@ -107,9 +112,9 @@ describe("createEnumWithMeta", () => {
 });
 
 describe("createEnum", () => {
-  type MoodKey = "happy" | "sad" | "neutral";
   // Variadic — the key literals are captured without `as const`.
   const mood = createEnum("happy", "sad", "neutral");
+  type MoodKey = EnumValues<typeof mood>;
 
   it("exposes each key as its own literal via ref", () => {
     expect(mood.ref.happy).toBe("happy");

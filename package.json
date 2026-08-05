@@ -1,7 +1,7 @@
 {
   "name": "bb-utils",
-  "version": "0.0.0",
-  "description": "A tree-shakeable collection of utility functions for browser and Node environments.",
+  "version": "1.0.0",
+  "description": "A collection of utility functions for browser and Node environments.",
   "keywords": [
     "esm",
     "tree-shakeable",

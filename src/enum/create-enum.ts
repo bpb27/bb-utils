@@ -167,3 +167,10 @@ export function createEnumWithMeta<T extends Record<string, unknown>>(meta: T): 
     get: (key) => (frozenMeta as Record<string, unknown>)[key] as T[keyof T] | undefined,
   };
 }
+
+/**
+ * The union of enum key literals
+ *
+ * @typeParam TEnum - The `typeof` {@link createEnum} or {@link createEnumWithMeta} instance.
+ */
+export type EnumValues<TEnum extends EnumApi<string>> = TEnum["keys"][number];

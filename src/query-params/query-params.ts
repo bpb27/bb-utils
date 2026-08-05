@@ -190,13 +190,25 @@ export function createQueryParamsSchema<const T extends Schema>(schema: T): Quer
   const serialize = (values: InputValues<T>): string => {
     const params = new URLSearchParams();
     const provided = values as Record<string, unknown>;
+    const issues: SchemaIssue[] = [];
 
     for (const [key, def] of entries) {
       const value = provided[key];
-      if (value === undefined) continue;
+      if (value === undefined) {
+        if (def.required) {
+          issues.push({
+            field: key,
+            value: null,
+            code: "missing",
+            message: `Missing required field "${key}"`,
+          });
+        }
+        continue;
+      }
       params.set(key, codecFor(def).encode(value));
     }
 
+    if (issues.length > 0) throw new SchemaError(issues);
     return params.toString();
   };
 

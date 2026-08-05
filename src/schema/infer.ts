@@ -104,13 +104,20 @@ export type ParsedValues<T extends Record<string, FieldInput>> = Prettify<
   }
 >;
 
+/** Fields the caller must supply when serializing (those marked `required`). */
+type RequiredInputKeys<T extends Record<string, FieldInput>> = {
+  [K in keyof T]: T[K] extends { required: true } ? K : never;
+}[keyof T];
+
 /**
- * The object type accepted by serializing: every field optional (omit a field
- * to leave it out of the output).
+ * The object type accepted by serializing: `required` fields must be supplied;
+ * every other field is optional (omit it to leave it out of the output).
  */
-export type InputValues<T extends Record<string, FieldInput>> = Prettify<{
-  [K in keyof T]?: ValueType<T[K]>;
-}>;
+export type InputValues<T extends Record<string, FieldInput>> = Prettify<
+  { [K in RequiredInputKeys<T>]-?: ValueType<T[K]> } & {
+    [K in Exclude<keyof T, RequiredInputKeys<T>>]?: ValueType<T[K]>;
+  }
+>;
 
 /**
  * Extract the parsed result type of a schema built by `createQueryParamsSchema`
