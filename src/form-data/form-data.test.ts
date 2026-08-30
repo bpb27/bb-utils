@@ -120,6 +120,33 @@ describe("createFormDataSchema", () => {
       expect(form.has("count")).toBe(false);
       expect(form.get("title")).toBe("x");
     });
+
+    it("preserves foreign entries via base without mutating it", () => {
+      const base = new FormData();
+      base.set("csrf", "tok");
+      base.set("title", "old");
+
+      const out = fd.serialize({ title: "New" }, base);
+      expect(out.get("csrf")).toBe("tok"); // foreign preserved
+      expect(out.get("title")).toBe("New"); // schema field overwritten
+      expect(base.get("title")).toBe("old"); // base untouched
+    });
+  });
+
+  describe("coerce", () => {
+    it("returns best-effort data plus issues and never throws", () => {
+      const form = new FormData();
+      form.set("count", "abc"); // invalid number
+      const result = fd.coerce(form);
+      const fields = result.issues.map((i) => i.field).sort();
+      expect(fields).toEqual(["count", "title"]); // count invalid, title required-missing
+    });
+  });
+
+  describe("defaults", () => {
+    it("returns only the fields that declare a default", () => {
+      expect(fd.defaults()).toEqual({ count: 0 });
+    });
   });
 
   describe("validate", () => {

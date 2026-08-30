@@ -104,6 +104,19 @@ export type ParsedValues<T extends Record<string, FieldInput>> = Prettify<
   }
 >;
 
+/** Fields that declare a `default`. */
+type DefaultedKeys<T extends Record<string, FieldInput>> = {
+  [K in keyof T]: T[K] extends { default: unknown } ? K : never;
+}[keyof T];
+
+/**
+ * The default values a schema provides — the fields that declare a `default`,
+ * mapped to those values. Returned by `schema.defaults()` for seeding inputs.
+ */
+export type Defaults<T extends Record<string, FieldInput>> = Prettify<{
+  [K in DefaultedKeys<T>]: ValueType<T[K]>;
+}>;
+
 /** Fields the caller must supply when serializing (those marked `required`). */
 type RequiredInputKeys<T extends Record<string, FieldInput>> = {
   [K in keyof T]: T[K] extends { required: true } ? K : never;

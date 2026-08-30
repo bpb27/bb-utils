@@ -1,11 +1,22 @@
 import { codecs, type Codec } from "../schema/codecs.js";
-import { SchemaError, type SafeParseResult, type SchemaIssue } from "../schema/errors.js";
+import {
+  SchemaError,
+  type CoerceResult,
+  type SafeParseResult,
+  type SchemaIssue,
+} from "../schema/errors.js";
 import { assertEnumDefaults, checkValidator } from "../schema/validate.js";
-import type { FormSchema, FormSchemaInput, InputValues, ParsedValues } from "../schema/infer.js";
+import type {
+  Defaults,
+  FormSchema,
+  FormSchemaInput,
+  InputValues,
+  ParsedValues,
+} from "../schema/infer.js";
 
 export { SchemaError } from "../schema/errors.js";
-export type { SafeParseResult, SchemaIssue } from "../schema/errors.js";
-export type { FormSchema, FormSchemaInput } from "../schema/infer.js";
+export type { CoerceResult, SafeParseResult, SchemaIssue } from "../schema/errors.js";
+export type { Defaults, FormSchema, FormSchemaInput } from "../schema/infer.js";
 
 /**
  * The element (scalar) codec for a field, or `null` for file fields, which are
@@ -73,13 +84,34 @@ export interface FormDataSchema<T extends FormSchema> {
   safeParse(input: FormData): SafeParseResult<ParsedValues<T>>;
 
   /**
+   * Like {@link FormDataSchema.parse}, but never throws and always returns a
+   * best-effort object plus a list of issues for anything that failed.
+   *
+   * @param input - The `FormData` to read.
+   * @returns `{ data, issues }` — `issues` is empty when everything parsed.
+   */
+  coerce(input: FormData): CoerceResult<ParsedValues<T>>;
+
+  /**
+   * The schema's default values — the fields that declare a `default`, mapped
+   * to those values. Handy for seeding inputs or initial state.
+   */
+  defaults(): Defaults<T>;
+
+  /**
    * Serialize a typed object into `FormData`. List fields append one entry per
-   * element; fields set to `undefined` are skipped.
+   * element; fields set to `undefined` are skipped; `required` fields must be
+   * supplied.
+   *
+   * Pass `base` (existing `FormData`) to preserve entries outside this schema —
+   * only the schema's own keys are written, and `base` is never mutated.
    *
    * @param values - The values to encode.
+   * @param base - Existing `FormData` whose non-schema entries are preserved.
    * @returns The populated `FormData`.
+   * @throws {SchemaError} If a `required` field is missing.
    */
-  serialize(values: InputValues<T>): FormData;
+  serialize(values: InputValues<T>, base?: FormData): FormData;
 }
 
 /**
@@ -92,7 +124,8 @@ export interface FormDataSchema<T extends FormSchema> {
  * returned object is frozen.
  *
  * @param schema - A map of field name to {@link FormSchemaInput}.
- * @returns A {@link FormDataSchema} with `parse`, `safeParse`, `serialize`.
+ * @returns A {@link FormDataSchema} with `parse`, `safeParse`, `coerce`,
+ *   `defaults`, and `serialize`.
  *
  * @example
  * ```ts
@@ -248,12 +281,32 @@ export function createFormDataSchema<const T extends FormSchema>(schema: T): For
     return { success: true, data: data as ParsedValues<T> };
   };
 
-  const serialize = (values: InputValues<T>): FormData => {
+  const coerce = (input: FormData): CoerceResult<ParsedValues<T>> => {
+    const { data, issues } = run(input);
+    return { data: data as ParsedValues<T>, issues };
+  };
+
+  const defaults = (): Defaults<T> => {
+    const result: Record<string, unknown> = {};
+    for (const [key, def] of entries) {
+      const value = opts(def).default;
+      if (value !== undefined) {
+        result[key] = Array.isArray(value) ? [...value] : value;
+      }
+    }
+    return result as Defaults<T>;
+  };
+
+  const serialize = (values: InputValues<T>, base?: FormData): FormData => {
     const form = new FormData();
+    // Copy `base` so it's never mutated; foreign entries ride through untouched.
+    if (base) for (const [key, entry] of base) form.append(key, entry);
     const provided = values as Record<string, unknown>;
     const issues: SchemaIssue[] = [];
 
     for (const [key, def] of entries) {
+      // The schema owns this key — clear any inherited base entries first.
+      form.delete(key);
       const value = provided[key];
       if (value === undefined) {
         if (def.required) {
@@ -292,5 +345,5 @@ export function createFormDataSchema<const T extends FormSchema>(schema: T): For
     return form;
   };
 
-  return Object.freeze({ schema, parse, safeParse, serialize });
+  return Object.freeze({ schema, parse, safeParse, coerce, defaults, serialize });
 }

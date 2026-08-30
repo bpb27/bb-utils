@@ -110,6 +110,49 @@ describe("createQueryParamsSchema", () => {
     expect(Object.isFrozen(qp)).toBe(true);
   });
 
+  describe("coerce", () => {
+    it("returns best-effort data plus issues and never throws", () => {
+      const result = qp.coerce("page=abc&q=hi&status=nope");
+      // valid fields kept, defaults applied, failing fields absent
+      expect(result.data).toEqual({ q: "hi", active: false });
+      expect(result.issues.map((i) => i.field).sort()).toEqual(["page", "status"]);
+    });
+
+    it("has no issues when everything parses", () => {
+      const result = qp.coerce("q=hi");
+      expect(result.issues).toEqual([]);
+      expect(result.data).toEqual({ q: "hi", page: 1, active: false });
+    });
+  });
+
+  describe("defaults", () => {
+    it("returns only the fields that declare a default", () => {
+      expect(qp.defaults()).toEqual({ page: 1, active: false });
+    });
+  });
+
+  describe("serialize with base", () => {
+    it("preserves params outside the schema and overwrites its own", () => {
+      const out = new URLSearchParams(qp.serialize({ q: "hi", page: 2 }, "ref=abc&q=old"));
+      expect(out.get("ref")).toBe("abc");
+      expect(out.get("q")).toBe("hi");
+      expect(out.get("page")).toBe("2");
+    });
+
+    it("clears omitted schema fields but keeps foreign params", () => {
+      const out = new URLSearchParams(qp.serialize({ page: 3 }, "q=old&ref=abc"));
+      expect(out.has("q")).toBe(false);
+      expect(out.get("ref")).toBe("abc");
+      expect(out.get("page")).toBe("3");
+    });
+
+    it("does not mutate the base", () => {
+      const base = new URLSearchParams("ref=abc");
+      qp.serialize({ q: "hi" }, base);
+      expect(base.toString()).toBe("ref=abc");
+    });
+  });
+
   describe("required fields", () => {
     const sso = createQueryParamsSchema({
       code: { type: "string", required: true },

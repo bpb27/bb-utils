@@ -30,3 +30,12 @@ export class SchemaError extends Error {
 export type SafeParseResult<Data> =
   | { success: true; data: Data }
   | { success: false; error: SchemaError };
+
+/**
+ * The result of `coerce`: a best-effort `data` object (defaults applied; fields
+ * that failed are absent) plus every {@link SchemaIssue}. Never throws.
+ */
+export interface CoerceResult<Data> {
+  data: Data;
+  issues: readonly SchemaIssue[];
+}

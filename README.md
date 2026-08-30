@@ -130,7 +130,65 @@ values.docs; // File[] | undefined
 fdSchema.serialize({ title: "Hi", tags: ["a", "b"] }); // FormData
 ```
 
-Both schema builders share the same options — `default`, `required`, `catch`, `dropInvalid`, `validate` — plus `.safeParse()` (returns `{ success, data | error }`) and `Infer<typeof schema>` for the parsed type.
+Both schema builders share the same options — `default`, `required`, `catch`, `dropInvalid`, `validate` — plus `.safeParse()` (`{ success, data | error }`), `.coerce()` (best-effort `{ data, issues }`, never throws), `.defaults()`, and `Infer<typeof schema>` for the parsed type. `serialize` preserves params outside the schema when given the current ones as a base.
+
+## State machine
+
+A tiny typed finite state machine — states from an enum, transitions with
+`before`/`after` hooks, per-event payloads inferred from those hooks. Fully
+synchronous: transitions commit before `send` returns.
+
+```ts
+import { createEnum, createMachine } from "bb-utils";
+
+const states = createEnum("idle", "loading", "ready");
+
+const machine = createMachine(
+  states,
+  {
+    idle: {
+      FETCH: { to: "loading" },
+    },
+    loading: {
+      RESOLVE: { to: "ready", after: (count: number) => render(count) }, // typed payload
+      REJECT: { before: () => "idle" as const, to: "loading" }, // redirect: return a state
+    },
+    ready: {
+      RESET: { to: "idle" },
+    },
+  },
+  { initial: "idle" },
+);
+
+machine.send("FETCH"); // machine.state === "loading" (immediately)
+machine.send("RESOLVE", 42); // payload required (after takes a number)
+machine.state; // "ready"
+machine.can("RESET"); // true — would a send transition from here? (runs the guard)
+machine.send("RESOLVE"); // { transitioned: false } — unhandled from "ready", no throw
+```
+
+`before` is a synchronous guard: return `false` to cancel, `true`/nothing to
+proceed, or a state key to redirect. `send` returns `{ transitioned, state }`,
+and `can(event)` runs the guard so `disabled={!machine.can("SAVE")}` just works.
+For React, `subscribe` + `getSnapshot` drop into `useSyncExternalStore` — see
+[react-usage.md](src/state-machine/react-usage.md).
+
+### Async work
+
+The machine stays synchronous — model async as an **in-flight state**:
+transition into it, start the work in `after`, and `send` a follow-up event when
+it settles. The pending state is observable (`machine.state === "loading"`
+drives your spinner):
+
+```ts
+idle: {
+  FETCH: { to: "loading", after: () => load().then((n) => machine.send("RESOLVE", n)) },
+},
+loading: {
+  RESOLVE: { to: "ready", after: (count: number) => render(count) },
+  REJECT: { to: "error" },
+},
+```
 
 ## License
 

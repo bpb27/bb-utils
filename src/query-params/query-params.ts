@@ -1,12 +1,17 @@
 import { is } from "../is/index.js";
 import { codecs, type ArrayCodec, type Codec } from "../schema/codecs.js";
-import { SchemaError, type SafeParseResult, type SchemaIssue } from "../schema/errors.js";
+import {
+  SchemaError,
+  type CoerceResult,
+  type SafeParseResult,
+  type SchemaIssue,
+} from "../schema/errors.js";
 import { assertEnumDefaults, checkValidator } from "../schema/validate.js";
-import type { InputValues, ParsedValues, Schema, SchemaInput } from "../schema/infer.js";
+import type { Defaults, InputValues, ParsedValues, Schema, SchemaInput } from "../schema/infer.js";
 
 export { SchemaError } from "../schema/errors.js";
-export type { SafeParseResult, SchemaIssue } from "../schema/errors.js";
-export type { Schema, SchemaInput } from "../schema/infer.js";
+export type { CoerceResult, SafeParseResult, SchemaIssue } from "../schema/errors.js";
+export type { Defaults, Schema, SchemaInput } from "../schema/infer.js";
 export type { Validator } from "../schema/validate.js";
 
 /**
@@ -71,13 +76,35 @@ export interface QueryParamsSchema<T extends Schema> {
   safeParse(input: string | URLSearchParams): SafeParseResult<ParsedValues<T>>;
 
   /**
+   * Like {@link QueryParamsSchema.parse}, but never throws and always returns a
+   * best-effort object: successfully decoded fields (and defaults) plus a list
+   * of issues for anything that failed.
+   *
+   * @param input - A query string or `URLSearchParams`.
+   * @returns `{ data, issues }` — `issues` is empty when everything parsed.
+   */
+  coerce(input: string | URLSearchParams): CoerceResult<ParsedValues<T>>;
+
+  /**
+   * The schema's default values — the fields that declare a `default`, mapped
+   * to those values. Handy for seeding inputs or initial state.
+   */
+  defaults(): Defaults<T>;
+
+  /**
    * Serialize a typed object into a query string. Fields set to `undefined`
-   * are skipped.
+   * are skipped; `required` fields must be supplied.
+   *
+   * Pass `base` (the current query string or `URLSearchParams`) to preserve
+   * params outside this schema — only the schema's own params are written, and
+   * `base` is never mutated.
    *
    * @param values - The values to encode.
+   * @param base - Existing params whose non-schema entries are preserved.
    * @returns The encoded query string (no leading `?`).
+   * @throws {SchemaError} If a `required` field is missing.
    */
-  serialize(values: InputValues<T>): string;
+  serialize(values: InputValues<T>, base?: string | URLSearchParams): string;
 }
 
 /**
@@ -91,7 +118,8 @@ export interface QueryParamsSchema<T extends Schema> {
  * to keep only its valid elements.
  *
  * @param schema - A map of param name to {@link SchemaInput}.
- * @returns A {@link QueryParamsSchema} with `parse`, `safeParse`, `serialize`.
+ * @returns A {@link QueryParamsSchema} with `parse`, `safeParse`, `coerce`,
+ *   `defaults`, and `serialize`.
  *
  * @example
  * ```ts
@@ -187,8 +215,26 @@ export function createQueryParamsSchema<const T extends Schema>(schema: T): Quer
     return { success: true, data: data as ParsedValues<T> };
   };
 
-  const serialize = (values: InputValues<T>): string => {
-    const params = new URLSearchParams();
+  const coerce = (input: string | URLSearchParams): CoerceResult<ParsedValues<T>> => {
+    const { data, issues } = run(input);
+    return { data: data as ParsedValues<T>, issues };
+  };
+
+  const defaults = (): Defaults<T> => {
+    const result: Record<string, unknown> = {};
+    for (const [key, def] of entries) {
+      if (def.default !== undefined) {
+        result[key] = Array.isArray(def.default) ? [...def.default] : def.default;
+      }
+    }
+    return result as Defaults<T>;
+  };
+
+  const serialize = (values: InputValues<T>, base?: string | URLSearchParams): string => {
+    // Copy `base` so the caller's params are never mutated; foreign entries ride
+    // through untouched while the schema's own keys are rewritten from `values`.
+    const params =
+      base === undefined ? new URLSearchParams() : new URLSearchParams(toSearchParams(base));
     const provided = values as Record<string, unknown>;
     const issues: SchemaIssue[] = [];
 
@@ -203,6 +249,7 @@ export function createQueryParamsSchema<const T extends Schema>(schema: T): Quer
             message: `Missing required field "${key}"`,
           });
         }
+        params.delete(key);
         continue;
       }
       params.set(key, codecFor(def).encode(value));
@@ -212,5 +259,5 @@ export function createQueryParamsSchema<const T extends Schema>(schema: T): Quer
     return params.toString();
   };
 
-  return Object.freeze({ schema, parse, safeParse, serialize });
+  return Object.freeze({ schema, parse, safeParse, coerce, defaults, serialize });
 }
