@@ -1,0 +1,23 @@
+name: Setup
+description: Install pnpm and Node, then install dependencies from the frozen lockfile.
+
+runs:
+  using: composite
+  steps:
+    # Must precede setup-node so its `cache: pnpm` can find the pnpm binary.
+    - name: Install pnpm
+      uses: pnpm/action-setup@v4
+      with:
+        version: 11.18.0
+
+    - name: Install Node
+      uses: actions/setup-node@v4
+      with:
+        node-version: 22
+        cache: pnpm
+        # Writes an ~/.npmrc that reads NODE_AUTH_TOKEN — used by the publish job.
+        registry-url: https://registry.npmjs.org
+
+    - name: Install dependencies
+      shell: bash
+      run: pnpm install --frozen-lockfile

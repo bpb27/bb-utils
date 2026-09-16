@@ -8,7 +8,7 @@ import { typedValues } from "../object/typed-values.js";
  *
  * @typeParam Key - The union of enum key literals.
  */
-export interface EnumApi<Key extends string> extends Iterable<Key> {
+export interface EnumApi<Key extends string> {
   /** The enum keys, in definition order, narrowed to the key union. */
   keys: readonly Key[];
 
@@ -48,9 +48,6 @@ export interface EnumApi<Key extends string> extends Iterable<Key> {
    * @returns The frozen mapping, typed exactly as supplied.
    */
   remap<M extends Record<Key, unknown>>(mapping: M): Readonly<M>;
-
-  /** Iterate the enum keys, in definition order. */
-  [Symbol.iterator](): IterableIterator<Key>;
 }
 
 /**
@@ -102,7 +99,6 @@ function buildEnum<Key extends string>(keys: readonly Key[]): EnumApi<Key> {
     // The public generic return type is enforced by the signature; the freeze
     // clone loses the generic binding, so we assert it back.
     remap: (mapping) => Object.freeze({ ...mapping }) as never,
-    [Symbol.iterator]: () => frozenKeys[Symbol.iterator](),
   };
 }
 
@@ -160,7 +156,6 @@ export function createEnumWithMeta<T extends Record<string, unknown>>(meta: T): 
   const core = buildEnum(typedKeys(frozenMeta) as Extract<keyof T, string>[]);
 
   return {
-    // oxlint-disable-next-line typescript/no-misused-spread
     ...core,
     meta: frozenMeta,
     values: Object.freeze(typedValues(frozenMeta)),

@@ -22,21 +22,21 @@ describe("Human-written createEnum test", () => {
     expect(() => STATUS.assert("active")).not.toThrow();
     expect(() => STATUS.assert("fake")).toThrow(RangeError);
 
-    const remaped = STATUS.remap({ active: "A", inactive: "I", pending: "P" });
-    expect(remaped).toEqual({
+    const letterMap = STATUS.remap({ active: "A", inactive: "I", pending: "P" });
+    expect(letterMap).toEqual({
       active: "A",
       inactive: "I",
       pending: "P",
     });
-    expect(remaped.active).toEqual<string>("A");
-    expect(remaped.inactive).toEqual<string>("I");
-    expect(remaped.pending).toEqual<string>("P");
+    expect(letterMap.active).toEqual<string>("A");
+    expect(letterMap.inactive).toEqual<string>("I");
+    expect(letterMap.pending).toEqual<string>("P");
     // @ts-expect-error - missing keys
     const _remapNonExhaustive = STATUS.remap({ active: "A" });
     // @ts-expect-error - contains non-enum keys
     const _remapBadKey = STATUS.remap({ active: "A", inactive: "I", pending: "P", fake: "F" });
 
-    for (const status of STATUS) {
+    for (const status of STATUS.keys) {
       expect(status).toBeOneOf<Status>([...STATUS.keys]);
     }
   });
@@ -78,21 +78,21 @@ describe("Human-written createEnum test", () => {
     expect(() => STATUS.assert("active")).not.toThrow();
     expect(() => STATUS.assert("fake")).toThrow(RangeError);
 
-    const remaped = STATUS.remap({ active: "A", inactive: "I", pending: "P" });
-    expect(remaped).toEqual({
+    const letterMap = STATUS.remap({ active: "A", inactive: "I", pending: "P" });
+    expect(letterMap).toEqual({
       active: "A",
       inactive: "I",
       pending: "P",
     });
-    expect(remaped.active).toEqual<string>("A");
-    expect(remaped.inactive).toEqual<string>("I");
-    expect(remaped.pending).toEqual<string>("P");
+    expect(letterMap.active).toEqual<string>("A");
+    expect(letterMap.inactive).toEqual<string>("I");
+    expect(letterMap.pending).toEqual<string>("P");
     // @ts-expect-error - missing keys
     const _remapNonExhaustive = STATUS.remap({ active: "A" });
     // @ts-expect-error - contains non-enum keys
     const _remapBadKey = STATUS.remap({ active: "A", inactive: "I", pending: "P", fake: "F" });
 
-    for (const status of STATUS) {
+    for (const status of STATUS.keys) {
       expect(status).toBeOneOf<Status>([...STATUS.keys]);
     }
   });

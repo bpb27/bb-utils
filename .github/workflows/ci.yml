@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Read-only by default; the publish job opts into more where it needs it.
+permissions:
+  contents: read
+
+# Cancel superseded PR runs, but never interrupt a push to main mid-publish.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: Format, lint & types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # `vp check` runs format + lint + type checks; tsc is the type source of
+      # truth for the type-assertion-heavy tests.
+      - run: pnpm exec vp check
+      - run: pnpm exec tsc --noEmit
+
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm exec vp test run
+
+  build:
+    name: Build library
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      - run: pnpm build
+      - name: Verify build artifacts
+        run: test -f dist/index.mjs && test -f dist/index.d.mts
+
+  docs:
+    name: Build docs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+      # Fail the build on any TypeDoc warning (broken links, undocumented refs).
+      - run: pnpm exec typedoc --treatWarningsAsErrors
+
+  publish:
+    name: Publish to npm
+    needs: [check, test, build, docs]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # create the release tag
+      id-token: write # npm provenance (requires a public repo)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup
+
+      # Publish only when package.json's version isn't already on npm, so ordinary
+      # merges are a no-op and a version bump triggers a release.
+      - name: Resolve version
+        id: version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if pnpm view "bb-utils@$VERSION" version >/dev/null 2>&1; then
+            echo "published=true" >> "$GITHUB_OUTPUT"
+            echo "bb-utils@$VERSION is already published — skipping."
+          else
+            echo "published=false" >> "$GITHUB_OUTPUT"
+            echo "bb-utils@$VERSION is new — will publish."
+          fi
+
+      # prepublishOnly (vp pack) builds dist as part of publish.
+      - name: Publish
+        if: steps.version.outputs.published == 'false'
+        run: pnpm publish --no-git-checks --access public --provenance
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Create GitHub release
+        if: steps.version.outputs.published == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.version.outputs.version }}
+          name: v${{ steps.version.outputs.version }}
+          generate_release_notes: true
