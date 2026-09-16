@@ -78,17 +78,12 @@ describe("createEnumWithMeta", () => {
     expect(remapped.sad).toBeUndefined();
   });
 
-  it("iterates keys in definition order", () => {
-    expect([...status]).toEqual(["active", "inactive", "pending"]);
-  });
-
   it("narrows types (checked by tsc)", () => {
     expectTypeOf(status.ref.active).toEqualTypeOf<"active">();
     expectTypeOf(status.meta.active).toEqualTypeOf<StatusMeta>();
     expectTypeOf(status.keys).toEqualTypeOf<readonly StatusKey[]>();
     expectTypeOf(status.values).items.toEqualTypeOf<StatusMeta>();
     expectTypeOf(status.get("active")).toEqualTypeOf<StatusMeta | undefined>();
-    expectTypeOf([...status]).toEqualTypeOf<StatusKey[]>();
 
     // contains is a type guard
     const maybeKey: string = "active";
@@ -132,10 +127,6 @@ describe("createEnum", () => {
     expect(mood.contains("happy")).toBe(true);
     expect(mood.contains("fake")).toBe(false);
     expect(() => mood.assert("fake")).toThrow(RangeError);
-  });
-
-  it("iterates keys", () => {
-    expect([...mood]).toEqual(["happy", "sad", "neutral"]);
   });
 
   it("captures literals from a spread tuple", () => {

@@ -30,7 +30,7 @@
     "check": "vp check --fix",
     "test": "vp test",
     "docs": "typedoc",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "vp pack"
   },
   "devDependencies": {
     "@types/node": "^22.10.5",

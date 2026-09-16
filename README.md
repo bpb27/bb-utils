@@ -15,24 +15,29 @@ pnpm install bb-utils
 Better than TS Enum and const objects.
 
 ```ts
-import { createEnum, createEnumWithMeta, EnumApi } from "bb-utils";
+import { createEnum, createEnumWithMeta, type EnumValues } from "bb-utils";
 
 const STATUS = createEnum("pending", "success", "error");
 type Status = EnumValues<typeof STATUS>; // "pending" | "success" | "error"
 
-STATUS.ref.pending; // "pending"
-STATUS.contains("pending"); // true (+ narrowed)
-STATUS.assert("fake"); // throws or narrows
+STATUS.contains(user.status); // boolean (narrows)
+STATUS.assert(user.status); // undefined (throws or narrows)
 STATUS.keys; // ["pending", "success", "error"]
+STATUS.ref.pending; // "pending"
 
-const labels = STATUS.remap({ pending: "yellow", success: "green", error: "red" });
-labels.pending; // "yellow"
+// exhaustive check
+const labels = STATUS.remap({
+  pending: "yellow",
+  success: "green",
+  error: "red",
+});
+const userLabel = label[user.status]; // string
 
-for (const status of STATUS) {
-  // status == "pending" | "success" | "error"
-}
+STATUS.keys.forEach(someFunction); // Array.forEach
+STATUS.keys.map(someFunction); // Array.map
 
 // or upgrade to createEnumWithMeta (extended interface)
+// useful for centralizing all metadata coupled to enum values
 
 const MEMBERSHIP = createEnumWithMeta({
   free: { label: "Free", color: "green" },
@@ -50,14 +55,25 @@ More convenient than `typeof` + `&&` chaining for type narrowing.
 ```ts
 import { is } from "bb-utils";
 
-is.number(12); // => true (excludes NaN)
-is.plainObject({ a: 1 }); // => true (not arrays or class instances)
-is.date(new Date("nope")); // => false (excludes Invalid Date)
+is.string("yep") // => true
+is.number(1); // => true (false for NaN)
+is.integer(1); // => true
+is.boolean(false); // => true (false for non-boolean truthy and falsey values)
+is.null(null); // => true
+is.undefined(undefined); // => true
+is.nullish(undefined); // true (true for null)
+is.defined(null); // false (false for undefined)
+is.plainObject({ a: 1 }); // => true (false for arrays, null, class instances, functions)
+is.array([]); // => true
+is.error(new Error("Oops")); // => true
+is.date(new Date())); // => true (false for Invalid Date)
+is.function((function noop(){})); // => true
+is.promiseLike(new Promise(noop, noop)); // => true (true for thenable)
+is.symbol(Symbol('wingding')); // => true
+is.bigint(BigInt("9007199254740991")); // true
+
 
 const nums = [1, null, 2, undefined].filter(is.defined); // number[]
-
-// also: string, boolean, bigint, symbol, integer, null, undefined,
-// nullish, array, function, error, promiseLike
 ```
 
 ### Object
@@ -82,17 +98,18 @@ object.fromKeys(["a", "bb"], (k) => k.length); // { a: 1, bb: 2 }
 Schema-first QP parsing + serialization. Better than `URLSearchParams.get('myParam')`.
 
 ```ts
-import { createQueryParamsSchema } from "bb-utils";
+import { createQueryParamsSchema, createEnum } from "bb-utils";
 
 const STATUS = createEnum("pending", "success", "error");
 const MODE = createEnum("dense", "compact");
 
+// each type can optionally provide a default value, required boolean, and catch fallback value
 const qpSchema = createQueryParamsSchema({
   search: { type: "string" },
   tags: { type: "strings" },
   page: { type: "number", default: 1 },
   status: { type: "enums", enum: STATUS },
-  mode: { type: "enum", enum: MODE },
+  mode: { type: "enum", enum: MODE, required: true },
   productIds: { type: "numbers" },
   active: { type: "boolean" },
 });
@@ -105,11 +122,13 @@ qps.status; // ("pending" | "success" | "error")[]
 qps.mode; // "dense" | "compact"
 qps.productIds; // number[] | undefined
 qps.active; // boolean | undefined
+
+const newQpStr = qps.serialize({ mode: "dense", tags: ["cool"] });
 ```
 
 ## Form data
 
-Schema-first `FormData` parsing + serialization — the query-params API, with file fields.
+Schema-first `FormData` parsing + serialization. Better than `FormDate.get('myField')`.
 
 ```ts
 import { createFormDataSchema } from "bb-utils";
