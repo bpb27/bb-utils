@@ -8,7 +8,7 @@ hook that re-renders on every transition and hands back the machine to drive.
 
 ```tsx
 import { useSyncExternalStore } from "react";
-import type { Machine, MachineConfig } from "bb-utils";
+import type { Machine, MachineConfig } from "@bb-utils/utils";
 
 export function useMachine<State extends string, TConfig extends MachineConfig<State>>(
   machine: Machine<State, TConfig>,
@@ -30,7 +30,7 @@ module scope for a shared singleton), then subscribe to it with the hook.
 
 ```tsx
 import { useState } from "react";
-import { createEnum, createMachine } from "bb-utils";
+import { createEnum, createMachine } from "@bb-utils/utils";
 import { useMachine } from "./use-machine";
 
 const states = createEnum("idle", "saving", "saved", "error");

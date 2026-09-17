@@ -7,7 +7,7 @@ and surfaces typed values plus per-field errors.
 
 ```tsx
 import { useCallback, useState, type FormEvent } from "react";
-import type { FormDataSchema, FormSchema, Infer, SchemaIssue } from "bb-utils";
+import type { FormDataSchema, FormSchema, Infer, SchemaIssue } from "@bb-utils/utils";
 
 export function useFormData<T extends FormSchema>(
   schema: FormDataSchema<T>,
@@ -42,7 +42,7 @@ issue for a field (missing `required`, failed `validate`, wrong type, …).
 ## In a component
 
 ```tsx
-import { createFormDataSchema } from "bb-utils";
+import { createFormDataSchema } from "@bb-utils/utils";
 import { useFormData } from "./use-form-data";
 
 const uploadForm = createFormDataSchema({
@@ -85,7 +85,7 @@ your record — nothing needs to "hydrate". For a **create** form, seed from
 `schema.defaults()`; for an **edit** form, seed from the record you're editing.
 
 ```tsx
-import { createEnum, createFormDataSchema } from "bb-utils";
+import { createEnum, createFormDataSchema } from "@bb-utils/utils";
 import { useFormData } from "./use-form-data";
 
 const STATUS = createEnum("draft", "live");

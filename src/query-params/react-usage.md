@@ -8,7 +8,7 @@ validated search params. Assumes react-router v7 (data mode).
 ```tsx
 import { useCallback, useMemo } from "react";
 import { useSearchParams, type NavigateOptions } from "react-router";
-import type { Infer, QueryParamsSchema, Schema } from "bb-utils";
+import type { Infer, QueryParamsSchema, Schema } from "@bb-utils/utils";
 
 export function useQueryParams<T extends Schema>(schema: QueryParamsSchema<T>) {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -34,7 +34,7 @@ is untrusted and you'd rather fall back than throw.
 ## In a component
 
 ```tsx
-import { createEnum, createQueryParamsSchema } from "bb-utils";
+import { createEnum, createQueryParamsSchema } from "@bb-utils/utils";
 import { useQueryParams } from "./use-query-params";
 
 const SORT = createEnum("newest", "oldest", "price");

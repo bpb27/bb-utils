@@ -1,5 +1,5 @@
 {
-  "name": "bb-utils",
+  "name": "@bb-utils/utils",
   "version": "1.0.0",
   "description": "A collection of utility functions for browser and Node environments.",
   "keywords": [

@@ -15,7 +15,7 @@ import { fromKeys } from "./from-keys.js";
  *
  * @example
  * ```ts
- * import { object } from 'bb-utils';
+ * import { object } from '@bb-utils/utils';
  *
  * object.typedKeys({ x: 1, y: 2 }); // ('x' | 'y')[]
  * object.fromKeys(['a', 'bb'], (k) => k.length); // { a: 1, bb: 2 }
