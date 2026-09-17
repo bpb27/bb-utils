@@ -9,8 +9,14 @@
     "utilities",
     "utils"
   ],
+  "homepage": "https://github.com/bpb27/bb-utils#readme",
+  "bugs": "https://github.com/bpb27/bb-utils/issues",
   "license": "MIT",
   "author": "Brendan Brown <brendanbrown27@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bpb27/bb-utils.git"
+  },
   "files": [
     "dist"
   ],
