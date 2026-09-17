@@ -72,12 +72,12 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if pnpm view "bb-utils@$VERSION" version >/dev/null 2>&1; then
+          if pnpm view "@bb-utils/utils@$VERSION" version >/dev/null 2>&1; then
             echo "published=true" >> "$GITHUB_OUTPUT"
-            echo "bb-utils@$VERSION is already published — skipping."
+            echo "@bb-utils/utils@$VERSION is already published — skipping."
           else
             echo "published=false" >> "$GITHUB_OUTPUT"
-            echo "bb-utils@$VERSION is new — will publish."
+            echo "@bb-utils/utils@$VERSION is new — will publish."
           fi
 
       # prepublishOnly (vp pack) builds dist as part of publish.

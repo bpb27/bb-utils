@@ -5,7 +5,7 @@ A collection of utility functions for **browser** and **Node** environments.
 ## Install
 
 ```bash
-pnpm install bb-utils
+pnpm add @bb-utils/utils
 ```
 
 ## Usage
@@ -15,7 +15,7 @@ pnpm install bb-utils
 Better than TS Enum and const objects.
 
 ```ts
-import { createEnum, createEnumWithMeta, type EnumValues } from "bb-utils";
+import { createEnum, createEnumWithMeta, type EnumValues } from "@bb-utils/utils";
 
 const STATUS = createEnum("pending", "success", "error");
 type Status = EnumValues<typeof STATUS>; // "pending" | "success" | "error"
@@ -53,7 +53,7 @@ const color = MEMBERSHIP.meta(user.membership).color; // string
 More convenient than `typeof` + `&&` chaining for type narrowing.
 
 ```ts
-import { is } from "bb-utils";
+import { is } from "@bb-utils/utils";
 
 is.string("yep") // => true
 is.number(1); // => true (false for NaN)
@@ -81,7 +81,7 @@ const nums = [1, null, 2, undefined].filter(is.defined); // number[]
 Typed `Object.*` — no casting `Object.keys(x)` to `(keyof x)[]` yourself.
 
 ```ts
-import { object } from "bb-utils";
+import { object } from "@bb-utils/utils";
 
 object.typedKeys({ a: 1, b: 2 }); // ("a" | "b")[]  — not string[]
 object.typedValues({ a: 1, b: 2 }); // number[]
@@ -98,7 +98,7 @@ object.fromKeys(["a", "bb"], (k) => k.length); // { a: 1, bb: 2 }
 Schema-first QP parsing + serialization. Better than `URLSearchParams.get('myParam')`.
 
 ```ts
-import { createQueryParamsSchema, createEnum } from "bb-utils";
+import { createQueryParamsSchema, createEnum } from "@bb-utils/utils";
 
 const STATUS = createEnum("pending", "success", "error");
 const MODE = createEnum("dense", "compact");
@@ -131,7 +131,7 @@ const newQpStr = qps.serialize({ mode: "dense", tags: ["cool"] });
 Schema-first `FormData` parsing + serialization. Better than `FormDate.get('myField')`.
 
 ```ts
-import { createFormDataSchema } from "bb-utils";
+import { createFormDataSchema } from "@bb-utils/utils";
 
 const fdSchema = createFormDataSchema({
   title: { type: "string", required: true },
@@ -158,7 +158,7 @@ A tiny typed finite state machine — states from an enum, transitions with
 synchronous: transitions commit before `send` returns.
 
 ```ts
-import { createEnum, createMachine } from "bb-utils";
+import { createEnum, createMachine } from "@bb-utils/utils";
 
 const states = createEnum("idle", "loading", "ready");
 

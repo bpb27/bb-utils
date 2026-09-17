@@ -24,7 +24,7 @@ import {
  *
  * @example
  * ```ts
- * import { is } from 'bb-utils';
+ * import { is } from '@bb-utils/utils';
  *
  * if (is.string(value)) value.toUpperCase();
  * const nums = mixed.filter(is.defined); // drops null | undefined
